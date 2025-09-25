@@ -1,12 +1,21 @@
 #include <Windows.h>
+#include <d3d11.h>
+
+#define SCREEN_WIDTH 800
+#define SCREEN_HEIGHT 600
 
 HINSTANCE g_hInst = NULL; // handle to this instance
 HWND g_hWnd = NULL; // handle to the created window
 const wchar_t* windowName = L"DirectX Hello World!"; // wide char array
 
+IDXGISwapChain* g_swapchain = NULL; // pointer to swap chain interface
+ID3D11Device* g_dev = NULL; // pointer to Direct3D Device interface
+ID3D11DeviceContext* g_devcon = NULL; // pointer to Direct3D Device Context
+
+
 HRESULT InitWindow(HINSTANCE instanceHandle, int nCmdShow);
 LRESULT CALLBACK WindowProc(HWND, UINT, WPARAM, LPARAM);
-
+HRESULT InitD3D(HWND hWnd);
 
 int WINAPI WinMain(
 	_In_ HINSTANCE hInstance,
@@ -17,6 +26,11 @@ int WINAPI WinMain(
 	if (FAILED(InitWindow(hInstance, nCmdShow)))
 	{
 		MessageBox(NULL, L"Failed to create window", L"Crititcal Error!", MB_ICONERROR | MB_OK);
+	}
+
+	if (FAILED(InitD3D(g_hWnd)))
+	{
+		MessageBox(NULL, L"Unable to create swapchain and device.", L"Critical Error", MB_ICONERROR | MB_OK);
 	}
 
 	// hold window event messages
@@ -38,6 +52,8 @@ int WINAPI WinMain(
 			}
 		}
 	}
+
+	CleanD3D();
 
 	return 0;
 }
@@ -63,8 +79,9 @@ HRESULT InitWindow(HINSTANCE instanceHandle, int nCmdShow)
 		return E_FAIL; // returns fail code
 	}
 
+
 	// adjust window dimentions so top windows bar is not taking pixes away from app
-	RECT wr = { 0,0, 640, 480 };
+	RECT wr = { 0,0, SCREEN_WIDTH, SCREEN_HEIGHT};
 	AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, FALSE);
 
 	g_hWnd = CreateWindowEx(NULL,
@@ -118,4 +135,47 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 	}
 
 	return 0;
+}
+
+HRESULT InitD3D(HWND hWnd)
+{
+	// struct to hold info about swap chain
+	DXGI_SWAP_CHAIN_DESC scd = {};
+
+	// fill the swap chain description struct
+	scd.BufferCount = 1; // 1 back buffer
+	scd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // 32-bit color
+	scd.BufferDesc.Width = SCREEN_WIDTH; // set the back buffer width
+	scd.BufferDesc.Height = SCREEN_HEIGHT; // set the back buffer height
+	scd.BufferDesc.RefreshRate.Numerator = 60; // 60fps
+	scd.BufferDesc.RefreshRate.Denominator = 1; // 60/1 = 60 fps
+	scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // intended swapchain use
+	scd.OutputWindow = hWnd; // window to use
+	scd.SampleDesc.Count = 1; // number of smaples for AA
+	scd.Windowed = TRUE; // windowed/full-screen mode
+	scd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH; // allow full-screen switching
+
+	HRESULT hr;
+
+	hr = D3D11CreateDeviceAndSwapChain(NULL,
+		D3D_DRIVER_TYPE_HARDWARE,
+		NULL,
+		D3D11_CREATE_DEVICE_DEBUG,
+		NULL,
+		NULL,
+		D3D11_SDK_VERSION,
+		&scd,
+		&g_swapchain,
+		&g_dev,
+		NULL,
+		&g_devcon);
+
+	if (FAILED(hr)) return hr;
+}
+
+void CleanD3D() 
+{
+	if (g_swapchain) g_swapchain->Release();
+	if (g_dev) g_dev->Release();
+	if (g_devcon) g_devcon->Release();
 }
