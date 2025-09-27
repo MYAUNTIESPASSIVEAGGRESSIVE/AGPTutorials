@@ -12,6 +12,7 @@ IDXGISwapChain* g_swapchain = NULL; // pointer to swap chain interface
 ID3D11Device* g_dev = NULL; // pointer to Direct3D Device interface
 ID3D11DeviceContext* g_devcon = NULL; // pointer to Direct3D Device Context
 
+void CleanD3D();
 
 HRESULT InitWindow(HINSTANCE instanceHandle, int nCmdShow);
 LRESULT CALLBACK WindowProc(HWND, UINT, WPARAM, LPARAM);
