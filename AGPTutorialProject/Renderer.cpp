@@ -6,6 +6,15 @@
 Renderer::Renderer(Window& inWindow)
 	: window(inWindow)
 {
+	if (InitD3D() != S_OK)
+	{
+		LOG("Failed to initalise D3D renderer");
+		return;
+	}
+}
+
+long Renderer::InitD3D()
+{
 	// struct to hold info about swap chain
 	DXGI_SWAP_CHAIN_DESC scd = {};
 
@@ -37,12 +46,70 @@ Renderer::Renderer(Window& inWindow)
 		NULL,
 		&devcon);
 
-	if (FAILED(hr)) LOG("failed to create a renderer");
+	// get the address of the back buffer
+	ID3D11Texture2D* backBufferTexture = nullptr;
+
+	// get the back buffer from the swap chain
+	hr = swapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&backBufferTexture);
+	if (FAILED(hr))
+	{
+		LOG("failed to create backbuffer texture.");
+		return hr;
+	}
+
+	hr = dev->CreateRenderTargetView(backBufferTexture, NULL, &backBuffer);
+
+	backBufferTexture->Release();
+	if (FAILED(hr))
+	{
+		LOG("failed to create backbuffer view.");
+		return hr;
+	}
+	
+	// set the backbuffer as the current render target
+	devcon->OMSetRenderTargets(1, &backBuffer, NULL);
+
+	// define and set viewport struct
+	D3D11_VIEWPORT viewport = {};
+	viewport.TopLeftX = 0;
+	viewport.TopLeftY = 0;
+	viewport.Width = (float)window.GetWidth();
+	viewport.Height = (float)window.GetHeight();
+	viewport.MinDepth = 0;
+	viewport.MaxDepth = 1;
+	devcon->RSSetViewports(1, &viewport);
+
+	if (FAILED(hr))
+	{
+		LOG("failed to create a renderer");
+		return hr; // ABORT SHIP!! YARRRRR
+	}
+
+	return S_OK;
 }
 
 void Renderer::Release()
 {
+	if (backBuffer) backBuffer->Release();
 	if (swapchain) swapchain->Release();
 	if (dev) dev->Release();
 	if (devcon) devcon->Release();
+}
+
+void Renderer::RenderFrame()
+{
+	FLOAT bg[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
+	FLOAT bg2[4] = { 0.0f, 1.0f, 0.0f, 1.0f };
+	FLOAT bg3[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
+
+
+	devcon->ClearRenderTargetView(backBuffer, bg);
+
+	// could include <DirectXColors.h>
+	// then devcon->ClearRenderTarget(backBuffer, DirectX::Colors::DarkSlateGray);
+	// can press F12 on Colors/DarkSlateGray to see list
+	// using namespace DirectX make it less cumbersome
+
+	// flip the back and front buffers
+	swapchain->Present(0, 0);
 }

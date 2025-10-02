@@ -3,6 +3,7 @@
 #include <iostream>
 #include "Renderer.h"
 
+void OpenConsole();
 
 int WINAPI WinMain(
 	_In_ HINSTANCE hInstance,
@@ -28,10 +29,11 @@ int WINAPI WinMain(
 
 			if (msg.message == WM_QUIT)
 				break;
-			else
-			{
-				// game code here
-			}
+		}
+		else
+		{
+			// game code here
+			_renderer.RenderFrame();
 		}
 	}
 
