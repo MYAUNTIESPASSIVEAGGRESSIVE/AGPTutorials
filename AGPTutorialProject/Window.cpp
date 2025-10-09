@@ -74,7 +74,6 @@ LRESULT Window::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 
 		case 'W':
 			break;
-
 		}
 
 	default:
