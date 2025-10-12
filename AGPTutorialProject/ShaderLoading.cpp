@@ -8,6 +8,9 @@
 
 namespace ShaderLoading
 {
+	int ReflectVShaderInputLayout(std::vector<uint8_t>& vShaderBytecode,
+		ID3D11Device* dev, ID3D11InputLayout** outIL);
+
 	// load vertex shader function
 	long LoadVertexShader(std::string filename, ID3D11Device* dev, ID3D11VertexShader** outVS, ID3D11InputLayout** outIL)
 	{

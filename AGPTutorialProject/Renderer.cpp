@@ -3,7 +3,7 @@
 #include "Window.h"
 #include <d3d11.h>
 #include "ShaderLoading.h"
-
+#include <DirectXColors.h>
 //#define _XM_NO_INTRINSICS_
 //#define XM_NO_ALIGHTNMENT // removes some optimisations
 #include <DirectXMath.h>
@@ -135,6 +135,69 @@ long Renderer::InitPipeline()
 	return S_OK;
 }
 
+void Renderer::InitGraphics()
+{
+	Vertex vertices[] =
+	{
+		{ XMFLOAT3{-0.5f, -0.5f, 0.0f}, XMFLOAT4{Colors::Red}  },
+		{ XMFLOAT3{ 0.0f,  0.5f, 0.0f}, XMFLOAT4{Colors::Lime} },
+		{ XMFLOAT3{ 0.5f, -0.5f, 0.0f}, XMFLOAT4{Colors::Blue} },
+	};
+
+	/*
+	Usage – we can inform D3D about how we intend to use this buffer, specifically if we plan on changing it at runtime. 
+	Typically, we would specify this as usage_default which means we do not need to change the contents of the buffer after creation, 
+	but dynamic is optimised for CPU changes to the buffer. 
+	This allows us to do CPU-level animations or deformations.
+	Dynamic also allows us to map and write to the buffer (step 7).
+	Byte Width – how big this buffer is and how much data it can store. You can simply use a sizeof(vertices) here if you wish to include the entire mesh, which would be a typical use case. Alternatively, you can specify a custom size if you wish to only include a portion of a model or some other specific use case.
+	Bind Flags – telling D3D what data we will store in this buffer. This allows D3D to perform behind-the-scenes optimisations to how it stores and copies data in this buffer.
+	CPU Access – we can specify whether we want no CPU access (NULL), CPU-read, CPU-write or both.
+	*/
+
+	D3D11_BUFFER_DESC bdesc = { 0 };
+	bdesc.Usage = D3D11_USAGE_DYNAMIC; // allows for CPU-write and GPU-read
+	bdesc.ByteWidth = sizeof(Vertex) * 3; // size of buffer - sizeof vertex * num of vertices
+	//bdesc.ByteWidth = sizeof(vertices); // can use this but only in local scope
+	bdesc.BindFlags = D3D11_BIND_VERTEX_BUFFER; // use as vertex buffer
+	bdesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE; // allow CPU to write in buffer
+	dev->CreateBuffer(&bdesc, NULL, &vBuffer);
+
+	if (FAILED(vBuffer) || vBuffer == 0);
+	{
+		LOG("failed to create vertex buffer");
+		return;
+	}
+
+	//copy the verticies into the buffer
+	D3D11_MAPPED_SUBRESOURCE ms;
+	devcon->Map(vBuffer, NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms); // map the buffer
+
+	memcpy(ms.pData, vertices, sizeof(vertices)); // copy the data into the buffer
+
+	devcon->Unmap(vBuffer, NULL);
+}
+
+void Renderer::RenderFrame()
+{
+	// clear back buffer with colour
+	devcon->ClearRenderTargetView(backBuffer,DirectX::Colors::DarkSlateGray);
+
+	// select which vertex buffer to use
+	UINT stride = sizeof(Vertex);
+	UINT offset = 0;
+	devcon->IASetVertexBuffers(0, 1, &vBuffer, &stride, &offset); // This tells the rendering context which vertex buffers should be used.
+
+	// select which primitive we are using
+	devcon->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // This will determine how the vertex buffer should be turned into geometry
+
+	devcon->Draw(3, 0); // parameters are number of vertices to draw + where in the buffer to start
+
+	// flip the back and front buffers
+	swapchain->Present(0, 0);
+}
+
+// clean up function
 void Renderer::Release()
 {
 	if (backBuffer) backBuffer->Release();
@@ -144,19 +207,5 @@ void Renderer::Release()
 	if (pVS) pVS->Release();
 	if (pPS) pPS->Release();
 	if (pIL) pIL ->Release();
-}
-
-void Renderer::RenderFrame()
-{
-	FLOAT bg[4] = { 1.0f, 0.0f, 0.0f, 1.0f };
-
-	devcon->ClearRenderTargetView(backBuffer, bg);
-
-	// could include <DirectXColors.h>
-	// then devcon->ClearRenderTarget(backBuffer, DirectX::Colors::DarkSlateGray);
-	// can press F12 on Colors/DarkSlateGray to see list
-	// using namespace DirectX make it less cumbersome
-
-	// flip the back and front buffers
-	swapchain->Present(0, 0);
+	if (vBuffer) vBuffer->Release();
 }

@@ -11,6 +11,9 @@ struct ID3D11VertexShader;
 struct ID3D11PixelShader;
 struct ID3D11InputLayout;
 
+// draw buffer
+struct ID3D11Buffer;
+
 class Window;
 
 class Renderer
@@ -32,7 +35,10 @@ private:
 	ID3D11PixelShader* pPS = nullptr; // pixel shader
 	ID3D11InputLayout* pIL = nullptr; // Input Layout
 
+	ID3D11Buffer* vBuffer = nullptr; // vertex buffer
+
 	long InitD3D();
 	long InitPipeline();
+	void InitGraphics();
 };
 
