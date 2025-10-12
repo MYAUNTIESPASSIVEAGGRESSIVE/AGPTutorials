@@ -30,6 +30,8 @@ Renderer::Renderer(Window& inWindow)
 		LOG("failed to initalise Pipeline");
 		return;
 	}
+
+	InitGraphics();
 }
 
 long Renderer::InitD3D()
@@ -166,7 +168,6 @@ void Renderer::InitGraphics()
 	if (FAILED(vBuffer) || vBuffer == 0);
 	{
 		LOG("failed to create vertex buffer");
-		return;
 	}
 
 	//copy the verticies into the buffer
@@ -181,7 +182,7 @@ void Renderer::InitGraphics()
 void Renderer::RenderFrame()
 {
 	// clear back buffer with colour
-	devcon->ClearRenderTargetView(backBuffer,DirectX::Colors::DarkSlateGray);
+	devcon->ClearRenderTargetView(backBuffer, DirectX::Colors::DarkSlateGray);
 
 	// select which vertex buffer to use
 	UINT stride = sizeof(Vertex);
