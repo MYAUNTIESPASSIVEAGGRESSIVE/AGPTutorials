@@ -1,8 +1,18 @@
 #pragma once
 
+// renderer + swap chain structs
 struct IDXGISwapChain;
 struct ID3D11Device;
 struct ID3D11DeviceContext;
+struct ID3D11RenderTargetView;
+
+// shader structs
+struct ID3D11VertexShader;
+struct ID3D11PixelShader;
+struct ID3D11InputLayout;
+
+// draw buffer
+struct ID3D11Buffer;
 
 class Window;
 
@@ -11,12 +21,24 @@ class Renderer
 public:
 	Renderer(Window& inWindow);
 	void Release();
+	void RenderFrame();
 
 private:
+	Window& window;
+
 	IDXGISwapChain* swapchain = nullptr; // pointer to swap chain interface
 	ID3D11Device* dev = nullptr; // pointer to Direct3D Device interface
 	ID3D11DeviceContext* devcon = nullptr; // pointer to Direct3D Device Context
-	Window& window;
+	ID3D11RenderTargetView* backBuffer = nullptr; // pointer to the D3D render target view
 
+	ID3D11VertexShader* pVS = nullptr; // vertex shader
+	ID3D11PixelShader* pPS = nullptr; // pixel shader
+	ID3D11InputLayout* pIL = nullptr; // Input Layout
+
+	ID3D11Buffer* vBuffer = nullptr; // vertex buffer
+
+	long InitD3D();
+	long InitPipeline();
+	void InitGraphics();
 };
 

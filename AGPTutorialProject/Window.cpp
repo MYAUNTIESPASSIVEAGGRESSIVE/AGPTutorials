@@ -1,5 +1,4 @@
 #include "Window.h"
-
 #include "Debug.h"
 
 const wchar_t* windowName = L"DirectX Hello World!"; // wide char array
@@ -46,10 +45,40 @@ Window::Window(int Hwidth, int Hheight, HINSTANCE Hinstance, int nCmdShow)
 	{
 		ShowWindow(handle, nCmdShow);
 	}
-	else LOG("failed to create window!");
+	else
+	{
+		LOG("failed to create window!");
+		DWORD var = GetLastError();
+		LOG("LOL");
+	}
+		
 }
 
 LRESULT Window::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	return LRESULT();
+	switch (message)
+	{
+
+	case WM_DESTROY:
+	{
+		PostQuitMessage(0);
+		return 0;
+	}
+
+	case WM_KEYDOWN:
+		switch (wParam)
+		{
+		case VK_ESCAPE:
+			DestroyWindow(hWnd);
+			break;
+
+		case 'W':
+			break;
+		}
+
+	default:
+		return DefWindowProc(hWnd, message, wParam, lParam);
+	}
+
+	return 0;
 }
