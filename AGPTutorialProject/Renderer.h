@@ -36,6 +36,7 @@ private:
 	ID3D11InputLayout* pIL = nullptr; // Input Layout
 
 	ID3D11Buffer* vBuffer = nullptr; // vertex buffer
+	ID3D11Buffer* iBuffer = nullptr; // vertex buffer
 
 	long InitD3D();
 	long InitPipeline();

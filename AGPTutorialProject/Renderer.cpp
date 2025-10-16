@@ -141,9 +141,16 @@ void Renderer::InitGraphics()
 {
 	Vertex vertices[] =
 	{
-		{ XMFLOAT3{-0.5f, -0.5f, 0.0f}, XMFLOAT4{Colors::Red}  },
-		{ XMFLOAT3{ 0.0f,  0.5f, 0.0f}, XMFLOAT4{Colors::Lime} },
-		{ XMFLOAT3{ 0.5f, -0.5f, 0.0f}, XMFLOAT4{Colors::Blue} },
+		{ XMFLOAT3{-0.5f, -0.5f, -0.5f}, XMFLOAT4{Colors::Red}  }, // front BL
+		{ XMFLOAT3{-0.5f,  0.5f, -0.5f}, XMFLOAT4{Colors::Lime} }, // front TL
+		{ XMFLOAT3{ 0.5f, 0.5f, 0.5f}, XMFLOAT4{Colors::Blue} }, // front TR
+		{ XMFLOAT3{ 0.5f, -0.5f, -0.5f}, XMFLOAT4{Colors::White} }, // front BR
+
+		{ XMFLOAT3{-0.5f, -0.5f, -0.5f}, XMFLOAT4{Colors::Cyan}  }, // back BL
+		{ XMFLOAT3{-0.5f,  0.5f, -0.5f}, XMFLOAT4{Colors::Purple} }, // back TL
+		{ XMFLOAT3{ 0.5f, 0.5f, 0.5f},   XMFLOAT4{Colors::Yellow} }, // back TR
+		{ XMFLOAT3{ 0.5f, -0.5f, -0.5f}, XMFLOAT4{Colors::Black} }, // back BR
+
 	};
 
 	/*
@@ -159,8 +166,8 @@ void Renderer::InitGraphics()
 
 	D3D11_BUFFER_DESC bdesc = { 0 };
 	bdesc.Usage = D3D11_USAGE_DYNAMIC; // allows for CPU-write and GPU-read
-	bdesc.ByteWidth = sizeof(Vertex) * 3; // size of buffer - sizeof vertex * num of vertices
-	//bdesc.ByteWidth = sizeof(vertices); // can use this but only in local scope
+	//bdesc.ByteWidth = sizeof(Vertex) * 3; // size of buffer - sizeof vertex * num of vertices
+	bdesc.ByteWidth = sizeof(vertices); // can use this but only in local scope
 	bdesc.BindFlags = D3D11_BIND_VERTEX_BUFFER; // use as vertex buffer
 	bdesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE; // allow CPU to write in buffer
 	dev->CreateBuffer(&bdesc, NULL, &vBuffer);
@@ -177,6 +184,26 @@ void Renderer::InitGraphics()
 	memcpy(ms.pData, vertices, sizeof(vertices)); // copy the data into the buffer
 
 	devcon->Unmap(vBuffer, NULL);
+
+	// Create an index buffer
+	unsigned int indices[] =
+	{   /* front */ 0,1,2,2,3,0, /* back */ 7,6,5,5,4,7, /* left */ 4,5,1,1,0,4,
+		/* right */ 3,2,6,6,7,3, /* top */ 1,5,6,6,2,1, /* bottom */ 4,0,3,3,7,4,};
+
+	// fill in a buffer description
+	D3D11_BUFFER_DESC bufferDesc = { 0 };
+	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	bufferDesc.ByteWidth = sizeof(indices);
+	bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+
+	// define the rosource data.
+	D3D11_SUBRESOURCE_DATA initData = { 0 };
+	initData.pSysMem = indices;
+
+	if (FAILED(dev->CreateBuffer(&bufferDesc, &initData, &iBuffer)))
+	{
+		LOG("failed to create index buffer");
+	}
 }
 
 void Renderer::RenderFrame()
@@ -188,11 +215,12 @@ void Renderer::RenderFrame()
 	UINT stride = sizeof(Vertex);
 	UINT offset = 0;
 	devcon->IASetVertexBuffers(0, 1, &vBuffer, &stride, &offset); // This tells the rendering context which vertex buffers should be used.
+	devcon->IASetIndexBuffer(iBuffer, DXGI_FORMAT_R32_UINT, 0); // This tells the rendering context which vertex buffers should be used.
 
 	// select which primitive we are using
 	devcon->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // This will determine how the vertex buffer should be turned into geometry
 
-	devcon->Draw(3, 0); // parameters are number of vertices to draw + where in the buffer to start
+	devcon->DrawIndexed(36, 0, 0); // parameters are number of vertices to draw + where in the buffer to start
 
 	// flip the back and front buffers
 	swapchain->Present(0, 0);
