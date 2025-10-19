@@ -32,6 +32,16 @@ int WINAPI WinMain(
 		}
 		else
 		{
+			_renderer.transform.position = DirectX::XMVectorSetZ(_renderer.transform.position, 0.5f);
+
+			static float fakeTime = 0;
+			fakeTime += 0.0001f; // simulate time passage
+			Transform& t = _renderer.transform; // cache reference to transform (easy access)
+			t.position = DirectX::XMVectorSetZ(t.position, 0.75f); // set x so its in front of the cam
+			t.position = DirectX::XMVectorSetX(t.position, sin(fakeTime)); // oscillate L+R
+			t.Rotate({ 0.0001f, 0.0001f, 0 }); // spin object per frame
+
+
 			// game code here
 			_renderer.RenderFrame();
 		}

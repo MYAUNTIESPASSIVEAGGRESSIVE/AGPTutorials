@@ -15,6 +15,14 @@ struct Vertex
 	XMFLOAT4 Colour;
 };
 
+// does not cross 16 byte boundry
+struct CBuffer_PerObject
+{
+	XMMATRIX world; // 64 byte world matrix
+	// each row is 16 bytes
+	// XMMATRIX aligns with SIMD hardware
+};
+
 
 Renderer::Renderer(Window& inWindow)
 	: window(inWindow)
@@ -139,17 +147,18 @@ long Renderer::InitPipeline()
 
 void Renderer::InitGraphics()
 {
+	// cube vertices
 	Vertex vertices[] =
 	{
-		{ XMFLOAT3{-0.5f, -0.5f, -0.5f}, XMFLOAT4{Colors::Red}  }, // front BL
-		{ XMFLOAT3{-0.5f,  0.5f, -0.5f}, XMFLOAT4{Colors::Lime} }, // front TL
-		{ XMFLOAT3{ 0.5f, 0.5f, 0.5f}, XMFLOAT4{Colors::Blue} }, // front TR
-		{ XMFLOAT3{ 0.5f, -0.5f, -0.5f}, XMFLOAT4{Colors::White} }, // front BR
+		{ XMFLOAT3{-0.5f, -0.5f, -0.5f}, XMFLOAT4{Colors::Red}    }, // front BL
+		{ XMFLOAT3{-0.5f,  0.5f, -0.5f}, XMFLOAT4{Colors::Lime}   }, // front TL
+		{ XMFLOAT3{ 0.5f,  0.5f,  0.5f}, XMFLOAT4{Colors::Blue}   }, // front TR
+		{ XMFLOAT3{ 0.5f, -0.5f, -0.5f}, XMFLOAT4{Colors::White}  }, // front BR
 
-		{ XMFLOAT3{-0.5f, -0.5f, -0.5f}, XMFLOAT4{Colors::Cyan}  }, // back BL
+		{ XMFLOAT3{-0.5f, -0.5f, -0.5f}, XMFLOAT4{Colors::Cyan}   }, // back BL
 		{ XMFLOAT3{-0.5f,  0.5f, -0.5f}, XMFLOAT4{Colors::Purple} }, // back TL
-		{ XMFLOAT3{ 0.5f, 0.5f, 0.5f},   XMFLOAT4{Colors::Yellow} }, // back TR
-		{ XMFLOAT3{ 0.5f, -0.5f, -0.5f}, XMFLOAT4{Colors::Black} }, // back BR
+		{ XMFLOAT3{ 0.5f,  0.5f,  0.5f}, XMFLOAT4{Colors::Yellow} }, // back TR
+		{ XMFLOAT3{ 0.5f, -0.5f, -0.5f}, XMFLOAT4{Colors::Black}  }, // back BR
 
 	};
 
@@ -204,6 +213,16 @@ void Renderer::InitGraphics()
 	{
 		LOG("failed to create index buffer");
 	}
+
+	D3D11_BUFFER_DESC cbd = { 0 };
+	cbd.Usage = D3D11_USAGE_DEFAULT;
+	cbd.ByteWidth = sizeof(CBuffer_PerObject);
+	cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+
+	if (FAILED(dev->CreateBuffer(&cbd, NULL, &cBuffer_PerObject)))
+	{
+		LOG("failed to create Cbuffer");
+	}
 }
 
 void Renderer::RenderFrame()
@@ -219,6 +238,12 @@ void Renderer::RenderFrame()
 
 	// select which primitive we are using
 	devcon->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // This will determine how the vertex buffer should be turned into geometry
+
+	// UPDATE VALUES BEFORE ISSUEING DRAW
+	CBuffer_PerObject cbufferData;
+	cbufferData.world = transform.GetWorldMatrix();
+	devcon->UpdateSubresource(cBuffer_PerObject, NULL, NULL, &cbufferData, NULL, NULL);
+	devcon->VSSetConstantBuffers(0, 1, &cBuffer_PerObject);
 
 	devcon->DrawIndexed(36, 0, 0); // parameters are number of vertices to draw + where in the buffer to start
 
@@ -237,4 +262,6 @@ void Renderer::Release()
 	if (pPS) pPS->Release();
 	if (pIL) pIL ->Release();
 	if (vBuffer) vBuffer->Release();
+	if (iBuffer) iBuffer->Release();
+	if (cBuffer_PerObject) cBuffer_PerObject->Release();
 }

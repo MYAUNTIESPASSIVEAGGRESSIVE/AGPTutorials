@@ -1,4 +1,5 @@
 #pragma once
+#include "Transform.h"
 
 // renderer + swap chain structs
 struct IDXGISwapChain;
@@ -23,6 +24,8 @@ public:
 	void Release();
 	void RenderFrame();
 
+	Transform transform;
+
 private:
 	Window& window;
 
@@ -37,6 +40,7 @@ private:
 
 	ID3D11Buffer* vBuffer = nullptr; // vertex buffer
 	ID3D11Buffer* iBuffer = nullptr; // vertex buffer
+	ID3D11Buffer* cBuffer_PerObject = nullptr; // const buffer
 
 	long InitD3D();
 	long InitPipeline();
