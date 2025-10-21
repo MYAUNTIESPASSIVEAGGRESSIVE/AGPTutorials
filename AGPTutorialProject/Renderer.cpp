@@ -152,13 +152,13 @@ void Renderer::InitGraphics()
 	{
 		{ XMFLOAT3{-0.5f, -0.5f, -0.5f}, XMFLOAT4{Colors::Red}    }, // front BL
 		{ XMFLOAT3{-0.5f,  0.5f, -0.5f}, XMFLOAT4{Colors::Lime}   }, // front TL
-		{ XMFLOAT3{ 0.5f,  0.5f,  0.5f}, XMFLOAT4{Colors::Blue}   }, // front TR
+		{ XMFLOAT3{ 0.5f,  0.5f, -0.5f}, XMFLOAT4{Colors::Blue}   }, // front TR
 		{ XMFLOAT3{ 0.5f, -0.5f, -0.5f}, XMFLOAT4{Colors::White}  }, // front BR
 
-		{ XMFLOAT3{-0.5f, -0.5f, -0.5f}, XMFLOAT4{Colors::Cyan}   }, // back BL
-		{ XMFLOAT3{-0.5f,  0.5f, -0.5f}, XMFLOAT4{Colors::Purple} }, // back TL
+		{ XMFLOAT3{-0.5f, -0.5f,  0.5f}, XMFLOAT4{Colors::Cyan}   }, // back BL
+		{ XMFLOAT3{-0.5f,  0.5f,  0.5f}, XMFLOAT4{Colors::Purple} }, // back TL
 		{ XMFLOAT3{ 0.5f,  0.5f,  0.5f}, XMFLOAT4{Colors::Yellow} }, // back TR
-		{ XMFLOAT3{ 0.5f, -0.5f, -0.5f}, XMFLOAT4{Colors::Black}  }, // back BR
+		{ XMFLOAT3{ 0.5f, -0.5f,  0.5f}, XMFLOAT4{Colors::Black}  }, // back BR
 
 	};
 
@@ -196,8 +196,8 @@ void Renderer::InitGraphics()
 
 	// Create an index buffer
 	unsigned int indices[] =
-	{   /* front */ 0,1,2,2,3,0, /* back */ 7,6,5,5,4,7, /* left */ 4,5,1,1,0,4,
-		/* right */ 3,2,6,6,7,3, /* top */ 1,5,6,6,2,1, /* bottom */ 4,0,3,3,7,4,};
+	{   /* front */ 0,1,2,2,3,0, /* back */ 7,6,5,5,4,7, /* left */   4,5,1,1,0,4,
+		/* right */ 3,2,6,6,7,3, /* top */  1,5,6,6,2,1, /* bottom */ 4,0,3,3,7,4,};
 
 	// fill in a buffer description
 	D3D11_BUFFER_DESC bufferDesc = { 0 };
