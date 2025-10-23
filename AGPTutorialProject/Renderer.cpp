@@ -18,7 +18,7 @@ struct Vertex
 // does not cross 16 byte boundry
 struct CBuffer_PerObject
 {
-	XMMATRIX world; // 64 byte world matrix
+	XMMATRIX WVP; // 64 byte world matrix
 	// each row is 16 bytes
 	// XMMATRIX aligns with SIMD hardware
 };
@@ -241,7 +241,7 @@ void Renderer::RenderFrame()
 
 	// UPDATE VALUES BEFORE ISSUEING DRAW
 	CBuffer_PerObject cbufferData;
-	cbufferData.world = transform.GetWorldMatrix();
+	cbufferData.WVP = transform.GetWorldMatrix();
 	devcon->UpdateSubresource(cBuffer_PerObject, NULL, NULL, &cbufferData, NULL, NULL);
 	devcon->VSSetConstantBuffers(0, 1, &cBuffer_PerObject);
 

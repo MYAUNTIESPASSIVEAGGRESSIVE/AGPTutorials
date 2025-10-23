@@ -13,5 +13,9 @@ public:
 
 	void Translate(DirectX::XMVECTOR translation);
 	void Rotate(DirectX::XMVECTOR inRotation);
+
+	DirectX::XMVECTOR GetForward();
+	DirectX::XMVECTOR GetRight();
+	DirectX::XMVECTOR GetUp();
 };
 

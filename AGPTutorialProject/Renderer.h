@@ -1,5 +1,6 @@
 #pragma once
 #include "Transform.h"
+#include "Camera.h"
 
 // renderer + swap chain structs
 struct IDXGISwapChain;
@@ -25,6 +26,7 @@ public:
 	void RenderFrame();
 
 	Transform transform;
+	Camera camera;
 
 private:
 	Window& window;
