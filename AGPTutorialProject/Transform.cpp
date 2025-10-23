@@ -24,7 +24,7 @@ void Transform::Rotate(DirectX::XMVECTOR inRotation)
 DirectX::XMVECTOR Transform::GetForward()
 {
 	float pitch = DirectX::XMVectorGetX(rotation);
-	float yaw = DirectX::XMVectorGetX(rotation);
+	float yaw = DirectX::XMVectorGetY(rotation);
 
 	DirectX::XMVECTOR direction
 	{
