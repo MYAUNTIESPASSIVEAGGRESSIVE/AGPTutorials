@@ -10,10 +10,15 @@ struct VOut
     float4 colour : COLOR;
 };
 
+cbuffer PerObjectCB
+{
+    matrix world;
+};
+
 VOut main(VIn input)
 {
     VOut output;
-    output.position = float4(input.position, 1);
-    output.colour = input.colour;
+    output.position = mul(world, float4(input.position, 1));
+    output.colour = input.colour; 
     return output;
 }
