@@ -209,8 +209,8 @@ void ModelLoader::LoadModelData(std::string path)
 	}
 
 	// additional work!!!
-	read_vertices.clear();
-	read_uv.clear();
-	read_normals.clear();
-	face_points.clear();
+	//read_vertices.clear();
+	//read_uv.clear();
+	//read_normals.clear();
+	//face_points.clear();
 }

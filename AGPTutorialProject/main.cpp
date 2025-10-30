@@ -17,9 +17,10 @@ int WINAPI WinMain(
 
 	_window.SetCamera(_renderer.camera);
 
-	_renderer.camera.transform.position = DirectX::XMVectorSetZ(_renderer.camera.transform.position, -1);
+	_renderer.camera.transform.position = DirectX::XMVectorSetZ(_renderer.camera.transform.position, -10);
 	_renderer.transform1.position = DirectX::XMVectorSetZ(_renderer.transform1.position, 1);
 	_renderer.transform2.position = DirectX::XMVectorSetZ(_renderer.transform2.position, 2);
+	_renderer.transform3.position = DirectX::XMVectorSetZ(_renderer.transform2.position, 7);
 
 	OpenConsole();
 	// hold window event messages
