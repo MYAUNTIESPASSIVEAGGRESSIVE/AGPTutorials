@@ -1,7 +1,14 @@
 #include "Window.h"
+#include "Camera.h"
 #include "Debug.h"
 
 const wchar_t* windowName = L"DirectX Hello World!"; // wide char array
+
+Camera* Window::cam = nullptr;
+void Window::SetCamera(Camera& camera)
+{
+	cam = &camera;
+}
 
 Window::Window(int Hwidth, int Hheight, HINSTANCE Hinstance, int nCmdShow)
 	: instance(Hinstance), width(Hwidth), height(Hheight)
@@ -54,6 +61,7 @@ Window::Window(int Hwidth, int Hheight, HINSTANCE Hinstance, int nCmdShow)
 		
 }
 
+
 LRESULT Window::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch (message)
@@ -72,7 +80,31 @@ LRESULT Window::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 			DestroyWindow(hWnd);
 			break;
 
-		case 'W':
+		// MOVE INPUT
+		case 'W': // move forward
+		    cam->transform.Translate({ 0, 0, 0.1f });
+			break;
+		case 'S': // move backward
+			cam->transform.Translate({ 0, 0, -0.1f });
+			break;
+		case 'A': // move left..ward
+			cam->transform.Translate({ -0.1f, 0, 0 });
+			break;
+		case 'D': // move right..ward
+			cam->transform.Translate({ 0.1f, 0, 0 });
+			break;
+		// ROTATE INPUT
+		case VK_LEFT: // rotate left..ward
+			cam->transform.Rotate({ 0, -DirectX::XM_PI / 8 });
+			break;
+		case VK_RIGHT: // rotate right..ward
+			cam->transform.Rotate({ 0, DirectX::XM_PI / 8 });
+			break;
+		case VK_UP: // rotate upward
+			cam->transform.Rotate({ DirectX::XM_PI / 8.0f, 0 });
+			break;
+		case VK_DOWN: // rotate downward
+			cam->transform.Rotate({ -DirectX::XM_PI / 8, 0 });
 			break;
 		}
 

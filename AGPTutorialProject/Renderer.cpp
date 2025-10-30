@@ -18,7 +18,7 @@ struct Vertex
 // does not cross 16 byte boundry
 struct CBuffer_PerObject
 {
-	XMMATRIX world; // 64 byte world matrix
+	XMMATRIX WVP; // 64 byte world matrix
 	// each row is 16 bytes
 	// XMMATRIX aligns with SIMD hardware
 };
@@ -95,8 +95,16 @@ long Renderer::InitD3D()
 		return hr;
 	}
 	
+	// init the depth buffer
+	hr = InitDepthBuffer();
+	if (FAILED(hr))
+	{
+		LOG("Failed to create depth buffer");
+		return hr;
+	}
+
 	// set the backbuffer as the current render target
-	devcon->OMSetRenderTargets(1, &backBuffer, NULL);
+	devcon->OMSetRenderTargets(1, &backBuffer, depthBuffer);
 
 	// define and set viewport struct
 	D3D11_VIEWPORT viewport = {};
@@ -225,10 +233,52 @@ void Renderer::InitGraphics()
 	}
 }
 
+long Renderer::InitDepthBuffer()
+{
+	HRESULT hr;
+	DXGI_SWAP_CHAIN_DESC scd = {};
+	swapchain->GetDesc(&scd);
+
+	D3D11_TEXTURE2D_DESC tex2dDesc = { 0 };
+	tex2dDesc.Width = window.GetWidth();
+	tex2dDesc.Height = window.GetHeight();
+	tex2dDesc.ArraySize = 1;
+	tex2dDesc.MipLevels = 1;
+	tex2dDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	tex2dDesc.SampleDesc.Count = scd.SampleDesc.Count; // same sample count as the swap chain
+	tex2dDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+	tex2dDesc.Usage = D3D11_USAGE_DEFAULT;
+
+	ID3D11Texture2D* zBufferTexture;
+	hr = dev->CreateTexture2D(&tex2dDesc, NULL, &zBufferTexture);
+	if (FAILED(hr))
+	{
+		LOG("Failed to create Z-Buffer Texture");
+		return E_FAIL;
+	}
+
+	// create the depth buffer view
+	D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc;
+	ZeroMemory(&dsvDesc, sizeof(D3D11_DEPTH_STENCIL_VIEW_DESC));
+	dsvDesc.Format = tex2dDesc.Format;
+	dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+	hr = dev->CreateDepthStencilView(zBufferTexture, &dsvDesc, &depthBuffer);
+	if (FAILED(hr))
+	{
+		LOG("Failed to create dpeth stencil view");
+		return E_FAIL;
+	}
+
+	zBufferTexture->Release();
+
+	return S_OK;
+}
+
 void Renderer::RenderFrame()
 {
 	// clear back buffer with colour
 	devcon->ClearRenderTargetView(backBuffer, DirectX::Colors::DarkSlateGray);
+	devcon->ClearDepthStencilView(depthBuffer, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
 	// select which vertex buffer to use
 	UINT stride = sizeof(Vertex);
@@ -241,11 +291,19 @@ void Renderer::RenderFrame()
 
 	// UPDATE VALUES BEFORE ISSUEING DRAW
 	CBuffer_PerObject cbufferData;
-	cbufferData.world = transform.GetWorldMatrix();
+	cbufferData.WVP = XMMatrixIdentity();
+	XMMATRIX world = transform1.GetWorldMatrix();
+	XMMATRIX view = camera.GetViewMatrix();
+	XMMATRIX projection = camera.GetProjectionMatrix(window.GetWidth(), window.GetHeight());
+	cbufferData.WVP = world * view * projection;
 	devcon->UpdateSubresource(cBuffer_PerObject, NULL, NULL, &cbufferData, NULL, NULL);
 	devcon->VSSetConstantBuffers(0, 1, &cBuffer_PerObject);
 
 	devcon->DrawIndexed(36, 0, 0); // parameters are number of vertices to draw + where in the buffer to start
+
+	cbufferData.WVP = transform2.GetWorldMatrix() * view * projection;
+	devcon->UpdateSubresource(cBuffer_PerObject, NULL, NULL, &cbufferData, NULL, NULL);
+	devcon->DrawIndexed(36, 0, 0);
 
 	// flip the back and front buffers
 	swapchain->Present(0, 0);
@@ -264,4 +322,5 @@ void Renderer::Release()
 	if (vBuffer) vBuffer->Release();
 	if (iBuffer) iBuffer->Release();
 	if (cBuffer_PerObject) cBuffer_PerObject->Release();
+	if (depthBuffer) depthBuffer->Release();
 }

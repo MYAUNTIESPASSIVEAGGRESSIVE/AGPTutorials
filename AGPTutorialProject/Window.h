@@ -1,6 +1,8 @@
 #pragma once
 #include <Windows.h>
 
+class Camera;
+
 class Window
 {
 // private vars
@@ -8,6 +10,8 @@ private:
 	HWND handle = NULL;
 	HINSTANCE instance = NULL;
 	int height = 32, width = 32;
+
+	static Camera* cam; // cam pointer
 
 // private funcs
 private:
@@ -23,5 +27,7 @@ public:
 
 	// constructor
 	Window(int width, int height, HINSTANCE instance, int nCmdShow);
+
+	static void SetCamera(Camera& camera);
 };
 

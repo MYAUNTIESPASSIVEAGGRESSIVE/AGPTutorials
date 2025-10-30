@@ -1,5 +1,6 @@
 #pragma once
 #include "Transform.h"
+#include "Camera.h"
 
 // renderer + swap chain structs
 struct IDXGISwapChain;
@@ -15,6 +16,9 @@ struct ID3D11InputLayout;
 // draw buffer
 struct ID3D11Buffer;
 
+// depth buffer
+struct ID3D11DepthStencilView;
+
 class Window;
 
 class Renderer
@@ -24,7 +28,9 @@ public:
 	void Release();
 	void RenderFrame();
 
-	Transform transform;
+	Transform transform1;
+	Transform transform2;
+	Camera camera;
 
 private:
 	Window& window;
@@ -42,8 +48,11 @@ private:
 	ID3D11Buffer* iBuffer = nullptr; // vertex buffer
 	ID3D11Buffer* cBuffer_PerObject = nullptr; // const buffer
 
+	ID3D11DepthStencilView* depthBuffer = NULL; // depth buffer ptr
+
 	long InitD3D();
 	long InitPipeline();
 	void InitGraphics();
+	long InitDepthBuffer();
 };
 
