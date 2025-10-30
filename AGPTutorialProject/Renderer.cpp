@@ -4,16 +4,11 @@
 #include <d3d11.h>
 #include "ShaderLoading.h"
 #include <DirectXColors.h>
+#include "ModelLoader.h"
 //#define _XM_NO_INTRINSICS_
 //#define XM_NO_ALIGHTNMENT // removes some optimisations
 #include <DirectXMath.h>
 using namespace DirectX;
-
-struct Vertex
-{
-	XMFLOAT3 pos;
-	XMFLOAT4 Colour;
-};
 
 // does not cross 16 byte boundry
 struct CBuffer_PerObject
@@ -155,20 +150,7 @@ long Renderer::InitPipeline()
 
 void Renderer::InitGraphics()
 {
-	// cube vertices
-	Vertex vertices[] =
-	{
-		{ XMFLOAT3{-0.5f, -0.5f, -0.5f}, XMFLOAT4{Colors::Red}    }, // front BL
-		{ XMFLOAT3{-0.5f,  0.5f, -0.5f}, XMFLOAT4{Colors::Lime}   }, // front TL
-		{ XMFLOAT3{ 0.5f,  0.5f, -0.5f}, XMFLOAT4{Colors::Blue}   }, // front TR
-		{ XMFLOAT3{ 0.5f, -0.5f, -0.5f}, XMFLOAT4{Colors::White}  }, // front BR
-
-		{ XMFLOAT3{-0.5f, -0.5f,  0.5f}, XMFLOAT4{Colors::Cyan}   }, // back BL
-		{ XMFLOAT3{-0.5f,  0.5f,  0.5f}, XMFLOAT4{Colors::Purple} }, // back TL
-		{ XMFLOAT3{ 0.5f,  0.5f,  0.5f}, XMFLOAT4{Colors::Yellow} }, // back TR
-		{ XMFLOAT3{ 0.5f, -0.5f,  0.5f}, XMFLOAT4{Colors::Black}  }, // back BR
-
-	};
+	ModelLoader model{ "Assets/cube.obj" };
 
 	/*
 	Usage – we can inform D3D about how we intend to use this buffer, specifically if we plan on changing it at runtime. 
@@ -184,7 +166,7 @@ void Renderer::InitGraphics()
 	D3D11_BUFFER_DESC bdesc = { 0 };
 	bdesc.Usage = D3D11_USAGE_DYNAMIC; // allows for CPU-write and GPU-read
 	//bdesc.ByteWidth = sizeof(Vertex) * 3; // size of buffer - sizeof vertex * num of vertices
-	bdesc.ByteWidth = sizeof(vertices); // can use this but only in local scope
+	bdesc.ByteWidth = model.GetVertexBufferSize(); // can use this but only in local scope
 	bdesc.BindFlags = D3D11_BIND_VERTEX_BUFFER; // use as vertex buffer
 	bdesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE; // allow CPU to write in buffer
 	dev->CreateBuffer(&bdesc, NULL, &vBuffer);
@@ -192,13 +174,14 @@ void Renderer::InitGraphics()
 	if (FAILED(vBuffer) || vBuffer == 0);
 	{
 		LOG("failed to create vertex buffer");
+		return;
 	}
 
 	//copy the verticies into the buffer
 	D3D11_MAPPED_SUBRESOURCE ms;
 	devcon->Map(vBuffer, NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms); // map the buffer
 
-	memcpy(ms.pData, vertices, sizeof(vertices)); // copy the data into the buffer
+	memcpy(ms.pData, model.GetVertexData(), model.GetVertexBufferSize()); // copy the data into the buffer
 
 	devcon->Unmap(vBuffer, NULL);
 
@@ -210,12 +193,12 @@ void Renderer::InitGraphics()
 	// fill in a buffer description
 	D3D11_BUFFER_DESC bufferDesc = { 0 };
 	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	bufferDesc.ByteWidth = sizeof(indices);
+	bufferDesc.ByteWidth = model.GetIndexBufferSize();
 	bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 
 	// define the rosource data.
 	D3D11_SUBRESOURCE_DATA initData = { 0 };
-	initData.pSysMem = indices;
+	initData.pSysMem = model.GetIndexData();
 
 	if (FAILED(dev->CreateBuffer(&bufferDesc, &initData, &iBuffer)))
 	{
@@ -281,7 +264,7 @@ void Renderer::RenderFrame()
 	devcon->ClearDepthStencilView(depthBuffer, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
 	// select which vertex buffer to use
-	UINT stride = sizeof(Vertex);
+	UINT stride = sizeof(VertexPosUVNorm);
 	UINT offset = 0;
 	devcon->IASetVertexBuffers(0, 1, &vBuffer, &stride, &offset); // This tells the rendering context which vertex buffers should be used.
 	devcon->IASetIndexBuffer(iBuffer, DXGI_FORMAT_R32_UINT, 0); // This tells the rendering context which vertex buffers should be used.
