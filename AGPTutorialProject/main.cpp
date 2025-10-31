@@ -2,6 +2,8 @@
 #include "Window.h"
 #include <iostream>
 #include "Renderer.h"
+#include "Mesh.h"
+#include "GameObject.h"
 
 void OpenConsole();
 
@@ -15,12 +17,21 @@ int WINAPI WinMain(
 	Window _window{ 800, 600 , hInstance, nCmdShow };
 	Renderer _renderer{ _window };
 
+	Mesh mesh_cube{ _renderer, "cube.obj" };
+	Mesh mesh_sphere{ _renderer, "Sphere.obj" };
+
+	GameObject go1{ "Cube", &mesh_cube };
+	GameObject go2{ "Sphere", &mesh_sphere };
+
+	_renderer.RegisterGameObject(&go1);
+	_renderer.RegisterGameObject(&go2);
+
 	_window.SetCamera(_renderer.camera);
 
 	_renderer.camera.transform.position = DirectX::XMVectorSetZ(_renderer.camera.transform.position, -10);
-	_renderer.transform1.position = DirectX::XMVectorSetZ(_renderer.transform1.position, 1);
-	_renderer.transform2.position = DirectX::XMVectorSetZ(_renderer.transform2.position, 2);
-	_renderer.transform3.position = DirectX::XMVectorSetZ(_renderer.transform2.position, 7);
+
+	go1.transform.position = DirectX::XMVectorSet(-2, 0, 0, 1);
+	go2.transform.position = DirectX::XMVectorSet(2, 0, 0, 1);
 
 	OpenConsole();
 	// hold window event messages
@@ -39,11 +50,6 @@ int WINAPI WinMain(
 		}
 		else
 		{
-			static float fakeTime = 0;
-			fakeTime += 0.0001f; // simulate time passage
-			Transform& t = _renderer.transform2; // cache reference to transform (easy access)
-			t.position = DirectX::XMVectorSetX(t.position, sin(fakeTime)); // oscillate L+R
-			t.Rotate({ 0.0001f, 0.0001f, 0 }); // spin object per frame
 
 			// game code here
 			_renderer.RenderFrame();

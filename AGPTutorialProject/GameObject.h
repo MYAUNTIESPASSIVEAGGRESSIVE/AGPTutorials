@@ -1,11 +1,16 @@
 #pragma once
 #include <string>
 #include "Transform.h"
+
+class Mesh;
+
 class GameObject
 {
 public:
 
 	Transform transform;
+
+	Mesh* mesh;
 
 private:
 	std::string name = "GameObject";
@@ -13,6 +18,6 @@ private:
 public:
 	std::string GetName() { return name; }
 
-	GameObject(std::string objectName);
+	GameObject(std::string objectName, Mesh* objectMesh);
 };
 

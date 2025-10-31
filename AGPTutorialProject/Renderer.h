@@ -1,6 +1,7 @@
 #pragma once
 #include "Transform.h"
 #include "Camera.h"
+#include <vector>
 
 // renderer + swap chain structs
 struct IDXGISwapChain;
@@ -21,7 +22,8 @@ struct ID3D11DepthStencilView;
 
 class Window;
 
-class Mesh;
+//class Mesh;
+class GameObject;
 
 class Renderer
 {
@@ -31,13 +33,17 @@ public:
 	void RenderFrame();
 	ID3D11Device* GetDevice() { return dev; }
 	ID3D11DeviceContext* GetDeviceContext() { return devcon; }
+	void RegisterGameObject(GameObject* go);
+	void RemoveGameObject(GameObject* go);
 
-	Mesh* mesh;
-	Mesh* mesh2;
+	//Mesh* mesh;
+	//Mesh* mesh2;
 
-	Transform transform1;
-	Transform transform2;
-	Transform transform3;
+	std::vector<GameObject*> gameObjects;
+
+	//Transform transform1;
+	//Transform transform2;
+	//Transform transform3;
 
 	Camera camera;
 
