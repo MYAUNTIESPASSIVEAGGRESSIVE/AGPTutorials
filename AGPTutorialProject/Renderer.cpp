@@ -4,16 +4,13 @@
 #include <d3d11.h>
 #include "ShaderLoading.h"
 #include <DirectXColors.h>
+#include "ModelLoader.h"
+#include "Mesh.h"
+#include "GameObject.h"
 //#define _XM_NO_INTRINSICS_
 //#define XM_NO_ALIGHTNMENT // removes some optimisations
 #include <DirectXMath.h>
 using namespace DirectX;
-
-struct Vertex
-{
-	XMFLOAT3 pos;
-	XMFLOAT4 Colour;
-};
 
 // does not cross 16 byte boundry
 struct CBuffer_PerObject
@@ -155,73 +152,6 @@ long Renderer::InitPipeline()
 
 void Renderer::InitGraphics()
 {
-	// cube vertices
-	Vertex vertices[] =
-	{
-		{ XMFLOAT3{-0.5f, -0.5f, -0.5f}, XMFLOAT4{Colors::Red}    }, // front BL
-		{ XMFLOAT3{-0.5f,  0.5f, -0.5f}, XMFLOAT4{Colors::Lime}   }, // front TL
-		{ XMFLOAT3{ 0.5f,  0.5f, -0.5f}, XMFLOAT4{Colors::Blue}   }, // front TR
-		{ XMFLOAT3{ 0.5f, -0.5f, -0.5f}, XMFLOAT4{Colors::White}  }, // front BR
-
-		{ XMFLOAT3{-0.5f, -0.5f,  0.5f}, XMFLOAT4{Colors::Cyan}   }, // back BL
-		{ XMFLOAT3{-0.5f,  0.5f,  0.5f}, XMFLOAT4{Colors::Purple} }, // back TL
-		{ XMFLOAT3{ 0.5f,  0.5f,  0.5f}, XMFLOAT4{Colors::Yellow} }, // back TR
-		{ XMFLOAT3{ 0.5f, -0.5f,  0.5f}, XMFLOAT4{Colors::Black}  }, // back BR
-
-	};
-
-	/*
-	Usage – we can inform D3D about how we intend to use this buffer, specifically if we plan on changing it at runtime. 
-	Typically, we would specify this as usage_default which means we do not need to change the contents of the buffer after creation, 
-	but dynamic is optimised for CPU changes to the buffer. 
-	This allows us to do CPU-level animations or deformations.
-	Dynamic also allows us to map and write to the buffer (step 7).
-	Byte Width – how big this buffer is and how much data it can store. You can simply use a sizeof(vertices) here if you wish to include the entire mesh, which would be a typical use case. Alternatively, you can specify a custom size if you wish to only include a portion of a model or some other specific use case.
-	Bind Flags – telling D3D what data we will store in this buffer. This allows D3D to perform behind-the-scenes optimisations to how it stores and copies data in this buffer.
-	CPU Access – we can specify whether we want no CPU access (NULL), CPU-read, CPU-write or both.
-	*/
-
-	D3D11_BUFFER_DESC bdesc = { 0 };
-	bdesc.Usage = D3D11_USAGE_DYNAMIC; // allows for CPU-write and GPU-read
-	//bdesc.ByteWidth = sizeof(Vertex) * 3; // size of buffer - sizeof vertex * num of vertices
-	bdesc.ByteWidth = sizeof(vertices); // can use this but only in local scope
-	bdesc.BindFlags = D3D11_BIND_VERTEX_BUFFER; // use as vertex buffer
-	bdesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE; // allow CPU to write in buffer
-	dev->CreateBuffer(&bdesc, NULL, &vBuffer);
-
-	if (FAILED(vBuffer) || vBuffer == 0);
-	{
-		LOG("failed to create vertex buffer");
-	}
-
-	//copy the verticies into the buffer
-	D3D11_MAPPED_SUBRESOURCE ms;
-	devcon->Map(vBuffer, NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms); // map the buffer
-
-	memcpy(ms.pData, vertices, sizeof(vertices)); // copy the data into the buffer
-
-	devcon->Unmap(vBuffer, NULL);
-
-	// Create an index buffer
-	unsigned int indices[] =
-	{   /* front */ 0,1,2,2,3,0, /* back */ 7,6,5,5,4,7, /* left */   4,5,1,1,0,4,
-		/* right */ 3,2,6,6,7,3, /* top */  1,5,6,6,2,1, /* bottom */ 4,0,3,3,7,4,};
-
-	// fill in a buffer description
-	D3D11_BUFFER_DESC bufferDesc = { 0 };
-	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	bufferDesc.ByteWidth = sizeof(indices);
-	bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-
-	// define the rosource data.
-	D3D11_SUBRESOURCE_DATA initData = { 0 };
-	initData.pSysMem = indices;
-
-	if (FAILED(dev->CreateBuffer(&bufferDesc, &initData, &iBuffer)))
-	{
-		LOG("failed to create index buffer");
-	}
-
 	D3D11_BUFFER_DESC cbd = { 0 };
 	cbd.Usage = D3D11_USAGE_DEFAULT;
 	cbd.ByteWidth = sizeof(CBuffer_PerObject);
@@ -231,6 +161,22 @@ void Renderer::InitGraphics()
 	{
 		LOG("failed to create Cbuffer");
 	}
+}
+
+void Renderer::RegisterGameObject(GameObject* go)
+{
+	gameObjects.push_back(go);
+	LOG("Registered Game Object:" + go->GetName() + ".");
+}
+
+void Renderer::RemoveGameObject(GameObject* go)
+{
+	auto foundEntity = std::find(gameObjects.begin(), gameObjects.end(), go);
+	if (foundEntity != gameObjects.end())
+	{
+		gameObjects.erase(foundEntity);
+	}
+	// will effect index-based iterating
 }
 
 long Renderer::InitDepthBuffer()
@@ -265,7 +211,7 @@ long Renderer::InitDepthBuffer()
 	hr = dev->CreateDepthStencilView(zBufferTexture, &dsvDesc, &depthBuffer);
 	if (FAILED(hr))
 	{
-		LOG("Failed to create dpeth stencil view");
+		LOG("Failed to create depth stencil view");
 		return E_FAIL;
 	}
 
@@ -280,34 +226,27 @@ void Renderer::RenderFrame()
 	devcon->ClearRenderTargetView(backBuffer, DirectX::Colors::DarkSlateGray);
 	devcon->ClearDepthStencilView(depthBuffer, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-	// select which vertex buffer to use
-	UINT stride = sizeof(Vertex);
-	UINT offset = 0;
-	devcon->IASetVertexBuffers(0, 1, &vBuffer, &stride, &offset); // This tells the rendering context which vertex buffers should be used.
-	devcon->IASetIndexBuffer(iBuffer, DXGI_FORMAT_R32_UINT, 0); // This tells the rendering context which vertex buffers should be used.
-
-	// select which primitive we are using
-	devcon->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // This will determine how the vertex buffer should be turned into geometry
-
 	// UPDATE VALUES BEFORE ISSUEING DRAW
 	CBuffer_PerObject cbufferData;
 	cbufferData.WVP = XMMatrixIdentity();
-	XMMATRIX world = transform1.GetWorldMatrix();
 	XMMATRIX view = camera.GetViewMatrix();
 	XMMATRIX projection = camera.GetProjectionMatrix(window.GetWidth(), window.GetHeight());
-	cbufferData.WVP = world * view * projection;
-	devcon->UpdateSubresource(cBuffer_PerObject, NULL, NULL, &cbufferData, NULL, NULL);
-	devcon->VSSetConstantBuffers(0, 1, &cBuffer_PerObject);
 
-	devcon->DrawIndexed(36, 0, 0); // parameters are number of vertices to draw + where in the buffer to start
+	// gathers each game object and sets world transfer/resources and renders
+	for (auto go : gameObjects)
+	{
+		XMMATRIX world = go->transform.GetWorldMatrix();
+		cbufferData.WVP = world * view * projection;
+		devcon->UpdateSubresource(cBuffer_PerObject, NULL, NULL, &cbufferData, NULL, NULL);
+		devcon->VSSetConstantBuffers(0, 1, &cBuffer_PerObject);
 
-	cbufferData.WVP = transform2.GetWorldMatrix() * view * projection;
-	devcon->UpdateSubresource(cBuffer_PerObject, NULL, NULL, &cbufferData, NULL, NULL);
-	devcon->DrawIndexed(36, 0, 0);
+		go->mesh->Render();
+	}
 
 	// flip the back and front buffers
 	swapchain->Present(0, 0);
 }
+
 
 // clean up function
 void Renderer::Release()
@@ -319,8 +258,8 @@ void Renderer::Release()
 	if (pVS) pVS->Release();
 	if (pPS) pPS->Release();
 	if (pIL) pIL ->Release();
-	if (vBuffer) vBuffer->Release();
-	if (iBuffer) iBuffer->Release();
+	//if (vBuffer) vBuffer->Release();
+	//if (iBuffer) iBuffer->Release();
 	if (cBuffer_PerObject) cBuffer_PerObject->Release();
 	if (depthBuffer) depthBuffer->Release();
 }

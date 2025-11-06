@@ -1,6 +1,7 @@
 #pragma once
 #include "Transform.h"
 #include "Camera.h"
+#include <vector>
 
 // renderer + swap chain structs
 struct IDXGISwapChain;
@@ -21,15 +22,29 @@ struct ID3D11DepthStencilView;
 
 class Window;
 
+//class Mesh;
+class GameObject;
+
 class Renderer
 {
 public:
 	Renderer(Window& inWindow);
 	void Release();
 	void RenderFrame();
+	ID3D11Device* GetDevice() { return dev; }
+	ID3D11DeviceContext* GetDeviceContext() { return devcon; }
+	void RegisterGameObject(GameObject* go);
+	void RemoveGameObject(GameObject* go);
 
-	Transform transform1;
-	Transform transform2;
+	//Mesh* mesh;
+	//Mesh* mesh2;
+
+	std::vector<GameObject*> gameObjects;
+
+	//Transform transform1;
+	//Transform transform2;
+	//Transform transform3;
+
 	Camera camera;
 
 private:
@@ -44,8 +59,8 @@ private:
 	ID3D11PixelShader* pPS = nullptr; // pixel shader
 	ID3D11InputLayout* pIL = nullptr; // Input Layout
 
-	ID3D11Buffer* vBuffer = nullptr; // vertex buffer
-	ID3D11Buffer* iBuffer = nullptr; // vertex buffer
+	//ID3D11Buffer* vBuffer = nullptr; // vertex buffer
+	//ID3D11Buffer* iBuffer = nullptr; // index buffer
 	ID3D11Buffer* cBuffer_PerObject = nullptr; // const buffer
 
 	ID3D11DepthStencilView* depthBuffer = NULL; // depth buffer ptr
