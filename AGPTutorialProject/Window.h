@@ -1,5 +1,7 @@
 #pragma once
 #include <Windows.h>
+#include <Keyboard.h>
+#include <Mouse.h>
 
 class Camera;
 
@@ -11,7 +13,8 @@ private:
 	HINSTANCE instance = NULL;
 	int height = 32, width = 32;
 
-	static Camera* cam; // cam pointer
+	DirectX::Keyboard keyboard;
+	DirectX::Mouse mouse;
 
 // private funcs
 private:
@@ -25,9 +28,10 @@ public:
 	int GetHeight() { return height; }
 	int GetWidth() { return width; }
 
+	DirectX::Keyboard::KeyboardStateTracker kbTracker;
+
 	// constructor
 	Window(int width, int height, HINSTANCE instance, int nCmdShow);
-
-	static void SetCamera(Camera& camera);
+	void HandleInput(Camera cam);
 };
 
