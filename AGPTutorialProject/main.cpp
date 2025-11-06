@@ -6,7 +6,6 @@
 #include "GameObject.h"
 
 void OpenConsole();
-void HandleInput();
 
 int WINAPI WinMain(
 	_In_ HINSTANCE hInstance,
