@@ -18,7 +18,7 @@ int WINAPI WinMain(
 	Renderer _renderer{ _window };
 
 	Mesh mesh_cube{ _renderer, "Assets/cube.obj" };
-	Mesh mesh_sphere{ _renderer, "Assets/Sphere.obj" };
+	Mesh mesh_sphere{ _renderer, "Assets/LoafPoly.obj" };
 
 	GameObject go1{ "Cube", &mesh_cube };
 	GameObject go2{ "Sphere", &mesh_sphere };
