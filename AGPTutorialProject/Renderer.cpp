@@ -7,6 +7,7 @@
 #include "ModelLoader.h"
 #include "Mesh.h"
 #include "GameObject.h"
+#include "Texture.h"
 //#define _XM_NO_INTRINSICS_
 //#define XM_NO_ALIGHTNMENT // removes some optimisations
 #include <DirectXMath.h>
@@ -231,6 +232,12 @@ void Renderer::RenderFrame()
 	cbufferData.WVP = XMMatrixIdentity();
 	XMMATRIX view = camera.GetViewMatrix();
 	XMMATRIX projection = camera.GetProjectionMatrix(window.GetWidth(), window.GetHeight());
+
+	auto t = texture->GetTexture();
+	devcon->PSSetShaderResources(0, 1, &t);
+	auto s = texture->GetSampler();
+	devcon->PSSetSamplers(0, 1, &s);
+
 
 	// gathers each game object and sets world transfer/resources and renders
 	for (auto go : gameObjects)

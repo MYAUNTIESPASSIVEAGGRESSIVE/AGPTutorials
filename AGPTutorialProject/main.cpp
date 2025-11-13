@@ -4,6 +4,7 @@
 #include "Renderer.h"
 #include "Mesh.h"
 #include "GameObject.h"
+#include "Texture.h"
 
 void OpenConsole();
 
@@ -19,12 +20,15 @@ int WINAPI WinMain(
 
 	Mesh mesh_cube{ _renderer, "Assets/cube.obj" };
 	Mesh mesh_sphere{ _renderer, "Assets/LoafPoly.obj" };
+	Texture tex_box{ _renderer, "Assets/Box.bmp" };
 
 	GameObject go1{ "Cube", &mesh_cube };
 	GameObject go2{ "Sphere", &mesh_sphere };
 
 	_renderer.RegisterGameObject(&go1);
 	_renderer.RegisterGameObject(&go2);
+
+	_renderer.texture = &tex_box;
 
 	_renderer.camera.transform.position = DirectX::XMVectorSetZ(_renderer.camera.transform.position, -10);
 
