@@ -25,6 +25,8 @@ class Window;
 //class Mesh;
 class GameObject;
 
+class Texture;
+
 class Renderer
 {
 public:
@@ -36,16 +38,11 @@ public:
 	void RegisterGameObject(GameObject* go);
 	void RemoveGameObject(GameObject* go);
 
-	//Mesh* mesh;
-	//Mesh* mesh2;
-
 	std::vector<GameObject*> gameObjects;
 
-	//Transform transform1;
-	//Transform transform2;
-	//Transform transform3;
-
 	Camera camera;
+
+	Texture* texture;
 
 private:
 	Window& window;

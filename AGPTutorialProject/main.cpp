@@ -4,6 +4,7 @@
 #include "Renderer.h"
 #include "Mesh.h"
 #include "GameObject.h"
+#include "Texture.h"
 
 void OpenConsole();
 
@@ -17,8 +18,9 @@ int WINAPI WinMain(
 	Window _window{ 800, 600 , hInstance, nCmdShow };
 	Renderer _renderer{ _window };
 
-	Mesh mesh_cube{ _renderer, "cube.obj" };
-	Mesh mesh_sphere{ _renderer, "Sphere.obj" };
+	Mesh mesh_cube{ _renderer, "Assets/cube.obj" };
+	Mesh mesh_sphere{ _renderer, "Assets/LoafPoly.obj" };
+	Texture tex_box{ _renderer, "Assets/Box.bmp" };
 
 	GameObject go1{ "Cube", &mesh_cube };
 	GameObject go2{ "Sphere", &mesh_sphere };
@@ -26,7 +28,7 @@ int WINAPI WinMain(
 	_renderer.RegisterGameObject(&go1);
 	_renderer.RegisterGameObject(&go2);
 
-	_window.SetCamera(_renderer.camera);
+	_renderer.texture = &tex_box;
 
 	_renderer.camera.transform.position = DirectX::XMVectorSetZ(_renderer.camera.transform.position, -10);
 
@@ -50,8 +52,25 @@ int WINAPI WinMain(
 		}
 		else
 		{
-
 			// game code here
+
+			auto kbState = DirectX::Keyboard::Get().GetState();
+
+			if (kbState.W) _renderer.camera.transform.Translate({ 0, 0, 0.001f });
+			if (kbState.A) _renderer.camera.transform.Translate({ -0.001f, 0, 0 });
+			if (kbState.S) _renderer.camera.transform.Translate({ 0, 0, -0.001f });
+			if (kbState.D) _renderer.camera.transform.Translate({ 0.001f, 0, 0 });
+			if (kbState.Q) _renderer.camera.transform.Translate({ 0, 0.001f, 0 });
+			if (kbState.E) _renderer.camera.transform.Translate({ 0, -0.001f, 0 });
+
+			auto msState = DirectX::Mouse::Get().GetState();
+			_renderer.camera.transform.Rotate({ -(float)msState.y * 0.001f, (float)msState.x * 0.001f, 0 });
+
+			if (msState.leftButton) _renderer.camera.transform.position = { 0, 0, -5 };
+			if (msState.rightButton) _renderer.camera.transform.position = { 0, 0, 5 };
+
+			_window.HandleInput(_renderer.camera);
+
 			_renderer.RenderFrame();
 		}
 	}

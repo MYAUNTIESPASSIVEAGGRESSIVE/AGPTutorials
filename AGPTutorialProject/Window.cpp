@@ -4,12 +4,6 @@
 
 const wchar_t* windowName = L"DirectX Hello World!"; // wide char array
 
-Camera* Window::cam = nullptr;
-void Window::SetCamera(Camera& camera)
-{
-	cam = &camera;
-}
-
 Window::Window(int Hwidth, int Hheight, HINSTANCE Hinstance, int nCmdShow)
 	: instance(Hinstance), width(Hwidth), height(Hheight)
 {
@@ -58,7 +52,10 @@ Window::Window(int Hwidth, int Hheight, HINSTANCE Hinstance, int nCmdShow)
 		DWORD var = GetLastError();
 		LOG("LOL");
 	}
-		
+	
+	mouse.SetWindow(handle);
+	mouse.SetMode(DirectX::Mouse::MODE_RELATIVE);
+	//mouse.SetVisible(false);
 }
 
 
@@ -73,44 +70,70 @@ LRESULT Window::WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam
 		return 0;
 	}
 
+	case WM_ACTIVATE:
+	case WM_ACTIVATEAPP:
+	case WM_INPUT:
+		DirectX::Keyboard::ProcessMessage(message, wParam, lParam);
+		DirectX::Mouse::ProcessMessage(message, wParam, lParam);
+		break;
+	case WM_SYSKEYDOWN:
+		if (wParam == VK_RETURN && (lParam & 0x60000000) == 0x20000000)
+		{
+			// implement hotkeys for window
+		}
+		DirectX::Keyboard::ProcessMessage(message, wParam, lParam);
+		break;
+
 	case WM_KEYDOWN:
 		switch (wParam)
 		{
 		case VK_ESCAPE:
-			DestroyWindow(hWnd);
-			break;
-
-		// MOVE INPUT
-		case 'W': // move forward
-		    cam->transform.Translate({ 0, 0, 0.1f });
-			break;
-		case 'S': // move backward
-			cam->transform.Translate({ 0, 0, -0.1f });
-			break;
-		case 'A': // move left..ward
-			cam->transform.Translate({ -0.1f, 0, 0 });
-			break;
-		case 'D': // move right..ward
-			cam->transform.Translate({ 0.1f, 0, 0 });
-			break;
-		// ROTATE INPUT
-		case VK_LEFT: // rotate left..ward
-			cam->transform.Rotate({ 0, -DirectX::XM_PI / 8 });
-			break;
-		case VK_RIGHT: // rotate right..ward
-			cam->transform.Rotate({ 0, DirectX::XM_PI / 8 });
-			break;
-		case VK_UP: // rotate upward
-			cam->transform.Rotate({ DirectX::XM_PI / 8.0f, 0 });
-			break;
-		case VK_DOWN: // rotate downward
-			cam->transform.Rotate({ -DirectX::XM_PI / 8, 0 });
+			DestroyWindow(hWnd); // destorying window is not closing app
 			break;
 		}
+	case WM_KEYUP:
+		// keyup events
+	case WM_SYSKEYUP:
+		DirectX::Keyboard::ProcessMessage(message, wParam, lParam);
+		break;
 
+	case WM_MOUSEACTIVATE:
+		// ignore mouse clicks that regain focus on the window
+		// good practice to prevent player misinputs when they click  into window
+		return MA_ACTIVATEANDEAT;
+
+	case WM_MOUSEMOVE:
+	case WM_LBUTTONDOWN:
+	case WM_LBUTTONUP:
+	case WM_RBUTTONDOWN:
+	case WM_RBUTTONUP:
+	case WM_MBUTTONDOWN:
+	case WM_MBUTTONUP:
+	case WM_MOUSEWHEEL:
+	case WM_XBUTTONDOWN:
+	case WM_XBUTTONUP:
+	case WM_MOUSEHOVER:
+		DirectX::Mouse::ProcessMessage(message, wParam, lParam);
+		break;
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
 
 	return 0;
+}
+
+void Window::HandleInput(Camera cam)
+{
+	auto kbState = DirectX::Keyboard::Get().GetState();
+	kbTracker.Update(kbState);
+
+	if (kbTracker.pressed.Escape)
+	{
+		PostQuitMessage(0);
+	}
+
+	if (kbTracker.lastState.W) cam.transform.Translate({ 0, 0, 0.01f });
+	if (kbTracker.lastState.A) cam.transform.Translate({ -0.01f, 0, 0 });
+	if (kbTracker.lastState.S) cam.transform.Translate({ 0, 0, -0.01f });
+	if (kbTracker.lastState.D) cam.transform.Translate({ 0.01f, 0, 0 });
 }
