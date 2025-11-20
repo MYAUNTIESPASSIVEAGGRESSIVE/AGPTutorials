@@ -9,6 +9,8 @@ class Renderer;
 
 class Mesh
 {
+private:
+
 	ID3D11Device* dev;
 	ID3D11DeviceContext* devcon;
 	ID3D11Buffer* vBuffer = NULL;
@@ -18,7 +20,9 @@ class Mesh
 
 public:
 
-	Mesh(Renderer& renderer, std::string objPath);
+	Mesh(Renderer& renderer, std::string objPath, bool doubleSided = false);
 	void Render();
+
+	bool isDoubleSided = false;
 };
 

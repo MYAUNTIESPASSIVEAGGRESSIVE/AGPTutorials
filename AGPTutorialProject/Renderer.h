@@ -20,12 +20,16 @@ struct ID3D11Buffer;
 // depth buffer
 struct ID3D11DepthStencilView;
 
+struct ID3D11RasterizerState;
+
+struct ID3D11BlendState;
+
+struct ID3D11DepthStencilState;
+
 class Window;
 
 //class Mesh;
 class GameObject;
-
-class Texture;
 
 class Renderer
 {
@@ -41,8 +45,6 @@ public:
 	std::vector<GameObject*> gameObjects;
 
 	Camera camera;
-
-	Texture* texture;
 
 private:
 	Window& window;
@@ -61,6 +63,14 @@ private:
 	ID3D11Buffer* cBuffer_PerObject = nullptr; // const buffer
 
 	ID3D11DepthStencilView* depthBuffer = NULL; // depth buffer ptr
+
+	ID3D11RasterizerState* rasterizerCullBack = nullptr;
+	ID3D11RasterizerState* rasterizerCullNone = nullptr;
+
+	ID3D11BlendState* blendOpaque = nullptr;
+	ID3D11BlendState* blendTransparent = nullptr;
+
+	ID3D11DepthStencilState* depthWriteOff = nullptr;
 
 	long InitD3D();
 	long InitPipeline();
