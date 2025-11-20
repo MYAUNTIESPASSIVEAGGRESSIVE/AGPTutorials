@@ -33,6 +33,6 @@ VOut main(VIn input)
     float3 directionalFinal = directionalLightColour * diffuseAmount;
     output.colour = saturate(ambientLightColour + float4(directionalFinal, 1));
     
-    output.colour = float4(1, 1, 1, 1);
+    //output.colour = float4(1, 1, 1, 1);
     return output;
 }
