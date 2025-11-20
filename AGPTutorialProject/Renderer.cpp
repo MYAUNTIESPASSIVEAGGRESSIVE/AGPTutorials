@@ -19,6 +19,9 @@ struct CBuffer_PerObject
 	XMMATRIX WVP; // 64 byte world matrix
 	// each row is 16 bytes
 	// XMMATRIX aligns with SIMD hardware
+	XMVECTOR ambientLightColour;
+	XMVECTOR directionalLightColour;
+	XMVECTOR directionalLightDirection;
 };
 
 
@@ -281,6 +284,16 @@ void Renderer::RenderFrame()
 	{
 		XMMATRIX world = go->transform.GetWorldMatrix();
 		cbufferData.WVP = world * view * projection;
+
+		//lighting
+		//ambient light
+		cbufferData.ambientLightColour = ambientLightColour;
+		// directional light
+		cbufferData.directionalLightColour = directionalLightColour;
+		XMMATRIX transpose = XMMatrixTranspose(world);
+		cbufferData.directionalLightDirection = XMVector3Transform(directionalLightShinesFrom, transpose);
+
+
 		devcon->UpdateSubresource(cBuffer_PerObject, NULL, NULL, &cbufferData, NULL, NULL);
 		devcon->VSSetConstantBuffers(0, 1, &cBuffer_PerObject);
 

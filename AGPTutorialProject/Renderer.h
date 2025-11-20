@@ -72,6 +72,10 @@ private:
 
 	ID3D11DepthStencilState* depthWriteOff = nullptr;
 
+	DirectX::XMVECTOR ambientLightColour{ 0.1f, 0.1f, 0.1f};
+	DirectX::XMVECTOR directionalLightColour{ 0.9f, 0.8f, 0.75f };
+	DirectX::XMVECTOR directionalLightShinesFrom{ 0.9f, 0.8f, 0.75f };
+
 	long InitD3D();
 	long InitPipeline();
 	void InitGraphics();
