@@ -5,7 +5,8 @@
 
 #include "Renderer.h"
 
-Texture::Texture(Renderer& renderer, std::string path)
+Texture::Texture(Renderer& renderer, std::string path, bool transparent)
+	: isTransparent(transparent)
 {
 	ID3D11Device* dev = renderer.GetDevice();
 	ID3D11DeviceContext* devcon = renderer.GetDeviceContext();

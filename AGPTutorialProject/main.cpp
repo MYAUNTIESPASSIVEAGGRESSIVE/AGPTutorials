@@ -20,15 +20,17 @@ int WINAPI WinMain(
 
 	Mesh mesh_cube{ _renderer, "Assets/cube.obj" };
 	Mesh mesh_sphere{ _renderer, "Assets/LoafPoly.obj" };
+	Mesh mesh_grass{ _renderer, "Assets/grass.obj", true };
 	Texture tex_box{ _renderer, "Assets/Box.bmp" };
+	Texture tex_grass{ _renderer, "Assets/grass.png", true };
 
-	GameObject go1{ "Cube", &mesh_cube };
-	GameObject go2{ "Sphere", &mesh_sphere };
+	GameObject go_grass{ "Grass", &mesh_grass, &tex_grass };
+	GameObject go1{ "Cube", &mesh_cube, &tex_box };
+	GameObject go2{ "Sphere", &mesh_sphere, &tex_box};
 
 	_renderer.RegisterGameObject(&go1);
 	_renderer.RegisterGameObject(&go2);
-
-	_renderer.texture = &tex_box;
+	_renderer.RegisterGameObject(&go_grass); // when rendering transparent/transulcent textures make sure they are drawn last
 
 	_renderer.camera.transform.position = DirectX::XMVectorSetZ(_renderer.camera.transform.position, -10);
 

@@ -1,7 +1,7 @@
 #include "GameObject.h"
 
-GameObject::GameObject(std::string objectName, Mesh* objectMesh) 
-	: name(objectName), mesh(objectMesh)
+GameObject::GameObject(std::string objectName, Mesh* objectMesh, Texture* texture) 
+	: name(objectName), mesh(objectMesh), texture(texture)
 {
 
 }

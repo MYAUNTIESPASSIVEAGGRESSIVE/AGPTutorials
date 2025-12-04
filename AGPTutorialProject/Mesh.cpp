@@ -5,8 +5,8 @@
 #include "ModelLoader.h"
 #include "Debug.h"
 
-Mesh::Mesh(Renderer& renderer, std::string objPath)
-	: dev(renderer.GetDevice()), devcon(renderer.GetDeviceContext())
+Mesh::Mesh(Renderer& renderer, std::string objPath, bool doubleSided)
+	: dev(renderer.GetDevice()), devcon(renderer.GetDeviceContext()), isDoubleSided(doubleSided)
 {
 	ModelLoader ml{ objPath };
 

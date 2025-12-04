@@ -19,6 +19,9 @@ struct CBuffer_PerObject
 	XMMATRIX WVP; // 64 byte world matrix
 	// each row is 16 bytes
 	// XMMATRIX aligns with SIMD hardware
+	XMVECTOR ambientLightColour;
+	XMVECTOR directionalLightColour;
+	XMVECTOR directionalLightDirection;
 };
 
 
@@ -162,6 +165,49 @@ void Renderer::InitGraphics()
 	{
 		LOG("failed to create Cbuffer");
 	}
+
+	D3D11_RASTERIZER_DESC rsDesc;
+	ZeroMemory(&rsDesc, sizeof(D3D11_RASTERIZER_DESC));
+	rsDesc.CullMode = D3D11_CULL_NONE;
+	rsDesc.FillMode = D3D11_FILL_SOLID;
+	//rsDesc.FillMode = D3D11_FILL_WIREFRAME;
+	
+	// create no culling rasteriser
+	dev->CreateRasterizerState(&rsDesc, &rasterizerCullNone);
+
+	// create backface culling rasteriser
+	rsDesc.CullMode = D3D11_CULL_BACK;
+	dev->CreateRasterizerState(&rsDesc, &rasterizerCullBack);
+
+	D3D11_BLEND_DESC bdDesc = { 0 };
+	bdDesc.IndependentBlendEnable = FALSE;
+	bdDesc.AlphaToCoverageEnable = FALSE;
+	bdDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+	bdDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+	bdDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+	bdDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+	bdDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+	bdDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+	bdDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+	// transparent blend state
+	bdDesc.RenderTarget[0].BlendEnable = TRUE;
+	dev->CreateBlendState(&bdDesc, &blendTransparent);
+
+	// opaque blend state
+	bdDesc.RenderTarget[0].BlendEnable = TRUE;
+	dev->CreateBlendState(&bdDesc, &blendOpaque);
+
+
+	D3D11_DEPTH_STENCIL_DESC dsDesc = { 0 };
+	//depth test params
+	dsDesc.DepthEnable = true;
+	dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	dsDesc.DepthFunc = D3D11_COMPARISON_LESS;
+
+	dev->CreateDepthStencilState(&dsDesc, &depthWriteOff);
+
+	// use of depth and blend states while not entirely needed for transparent textures, for translucent textures having it will be useful.
 }
 
 void Renderer::RegisterGameObject(GameObject* go)
@@ -233,19 +279,37 @@ void Renderer::RenderFrame()
 	XMMATRIX view = camera.GetViewMatrix();
 	XMMATRIX projection = camera.GetProjectionMatrix(window.GetWidth(), window.GetHeight());
 
-	auto t = texture->GetTexture();
-	devcon->PSSetShaderResources(0, 1, &t);
-	auto s = texture->GetSampler();
-	devcon->PSSetSamplers(0, 1, &s);
-
-
 	// gathers each game object and sets world transfer/resources and renders
 	for (auto go : gameObjects)
 	{
 		XMMATRIX world = go->transform.GetWorldMatrix();
 		cbufferData.WVP = world * view * projection;
+
+		//lighting
+		//ambient light
+		cbufferData.ambientLightColour = ambientLightColour;
+		// directional light
+		cbufferData.directionalLightColour = directionalLightColour;
+		XMMATRIX transpose = XMMatrixTranspose(world);
+		cbufferData.directionalLightDirection = XMVector3Transform(directionalLightShinesFrom, transpose);
+
+
 		devcon->UpdateSubresource(cBuffer_PerObject, NULL, NULL, &cbufferData, NULL, NULL);
 		devcon->VSSetConstantBuffers(0, 1, &cBuffer_PerObject);
+
+		auto t = go->texture->GetTexture();
+		devcon->PSSetShaderResources(0, 1, &t);
+		auto s = go->texture->GetSampler();
+		devcon->PSSetSamplers(0, 1, &s);
+
+		devcon->RSSetState(go->mesh->isDoubleSided ?
+			rasterizerCullNone : rasterizerCullBack);
+
+		devcon->OMSetBlendState(go->texture->isTransparent ?
+			blendTransparent : blendOpaque, 0, 0xffffffff);
+
+		devcon->OMSetDepthStencilState(go->texture->isTransparent ?
+			depthWriteOff : nullptr, 1);
 
 		go->mesh->Render();
 	}
