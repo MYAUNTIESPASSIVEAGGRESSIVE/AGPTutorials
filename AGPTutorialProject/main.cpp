@@ -37,6 +37,9 @@ int WINAPI WinMain(
 	go1.transform.position = DirectX::XMVectorSet(-2, 0, 0, 1);
 	go2.transform.position = DirectX::XMVectorSet(2, 0, 0, 1);
 
+	_renderer.pointLights[0] = { DirectX::XMVECTOR{-1, -1, -3}, {0.85f, 0, 0.85f}, 30, true};
+	_renderer.pointLights[1] = { DirectX::XMVECTOR{-1, 1, -4}, {0, 0.85f, 0.85f}, 40, true };
+
 	OpenConsole();
 	// hold window event messages
 	MSG msg;

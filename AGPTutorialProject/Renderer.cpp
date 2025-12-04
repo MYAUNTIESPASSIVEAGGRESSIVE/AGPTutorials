@@ -19,9 +19,10 @@ struct CBuffer_PerObject
 	XMMATRIX WVP; // 64 byte world matrix
 	// each row is 16 bytes
 	// XMMATRIX aligns with SIMD hardware
-	XMVECTOR ambientLightColour;
+	XMVECTOR ambientLightColour; // 16 bytes
 	XMVECTOR directionalLightColour;
 	XMVECTOR directionalLightDirection;
+	PointLight pointLights[MAX_POINT_LIGHTS];
 };
 
 
@@ -292,6 +293,20 @@ void Renderer::RenderFrame()
 		cbufferData.directionalLightColour = directionalLightColour;
 		XMMATRIX transpose = XMMatrixTranspose(world);
 		cbufferData.directionalLightDirection = XMVector3Transform(directionalLightShinesFrom, transpose);
+
+		for (size_t i = 0; i < MAX_POINT_LIGHTS; i++)
+		{
+			cbufferData.pointLights[i].enabled = pointLights[i].enabled;
+
+			if (!pointLights[i].enabled)
+				continue;
+
+			XMMATRIX inverse = XMMatrixInverse(nullptr, world);
+
+			cbufferData.pointLights[i].position = XMVector3Transform(pointLights[i].position, inverse);
+			cbufferData.pointLights[i].colour = pointLights[i].colour;
+			cbufferData.pointLights[i].strength = pointLights[i].strength;
+		}
 
 
 		devcon->UpdateSubresource(cBuffer_PerObject, NULL, NULL, &cbufferData, NULL, NULL);
