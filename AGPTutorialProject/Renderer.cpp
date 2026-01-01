@@ -11,19 +11,30 @@
 //#define _XM_NO_INTRINSICS_
 //#define XM_NO_ALIGHTNMENT // removes some optimisations
 #include <DirectXMath.h>
+#include "Material.h"
 using namespace DirectX;
 
 // does not cross 16 byte boundry
 struct CBuffer_PerObject
 {
+	XMMATRIX World;
 	XMMATRIX WVP; // 64 byte world matrix
 	// each row is 16 bytes
 	// XMMATRIX aligns with SIMD hardware
-	XMVECTOR ambientLightColour;
-	XMVECTOR directionalLightColour;
-	XMVECTOR directionalLightDirection;
 };
 
+//struct CBuffer_Lighting
+//{
+//	XMVECTOR ambientLightColour; // 16 bytes
+//	DirectionalLight directionalLight;
+//	PointLight pointLights[MAX_POINT_LIGHTS];
+//};
+
+struct CBuffer_PerFrame
+{
+	XMFLOAT3 camPos;
+	float padding;
+};
 
 Renderer::Renderer(Window& inWindow)
 	: window(inWindow)
@@ -31,12 +42,6 @@ Renderer::Renderer(Window& inWindow)
 	if (InitD3D() != S_OK)
 	{
 		LOG("Failed to initalise D3D renderer");
-		return;
-	}
-
-	if (InitPipeline() != S_OK)
-	{
-		LOG("failed to initalise Pipeline");
 		return;
 	}
 
@@ -126,34 +131,6 @@ long Renderer::InitD3D()
 	return S_OK;
 }
 
-long Renderer::InitPipeline()
-{
-	// loads the pixel and vertex shader
-	ShaderLoading::LoadVertexShader("Compiled Shaders/VertexShader.cso", dev, &pVS, &pIL);
-
-	if (FAILED(ShaderLoading::LoadVertexShader("Compiled Shaders/VertexShader.cso", dev, &pVS, &pIL)))
-	{
-		LOG("Failed to load vertex shader");
-		return NULL;
-	}
-
-	ShaderLoading::LoadPixelShader("Compiled Shaders/PixelShader.cso", dev, &pPS);
-
-	if (FAILED(ShaderLoading::LoadPixelShader("Compiled Shaders/PixelShader.cso", dev, &pPS)))
-	{
-		LOG("Failed to load vertex shader");
-		return NULL;
-	}
-
-	// sets those shader objects
-	devcon->VSSetShader(pVS, 0, 0);
-	devcon->PSSetShader(pPS, 0, 0);
-
-	devcon->IASetInputLayout(pIL);
-
-	return S_OK;
-}
-
 void Renderer::InitGraphics()
 {
 	D3D11_BUFFER_DESC cbd = { 0 };
@@ -163,8 +140,21 @@ void Renderer::InitGraphics()
 
 	if (FAILED(dev->CreateBuffer(&cbd, NULL, &cBuffer_PerObject)))
 	{
-		LOG("failed to create Cbuffer");
+		LOG("failed to create Cbuffer_perobj");
 	}
+
+	cbd.ByteWidth = sizeof(CBuffer_PerFrame);
+
+	if (FAILED(dev->CreateBuffer(&cbd, NULL, &cBuffer_PerFrame)))
+	{
+		LOG("failed to create Cbuffer_perframe");
+	}
+
+	//cbd.ByteWidth = sizeof(CBuffer_Lighting);
+	//if (FAILED(dev->CreateBuffer(&cbd, NULL, &cBuffer_Lighting)))
+	//{
+	//	LOG("failed to create Cbuffer_lighting");
+	//}
 
 	D3D11_RASTERIZER_DESC rsDesc;
 	ZeroMemory(&rsDesc, sizeof(D3D11_RASTERIZER_DESC));
@@ -178,6 +168,10 @@ void Renderer::InitGraphics()
 	// create backface culling rasteriser
 	rsDesc.CullMode = D3D11_CULL_BACK;
 	dev->CreateRasterizerState(&rsDesc, &rasterizerCullBack);
+
+	// create front rasteriser
+	rsDesc.CullMode = D3D11_CULL_FRONT;
+	dev->CreateRasterizerState(&rsDesc, &rasterizerCullFront);
 
 	D3D11_BLEND_DESC bdDesc = { 0 };
 	bdDesc.IndependentBlendEnable = FALSE;
@@ -267,50 +261,76 @@ long Renderer::InitDepthBuffer()
 	return S_OK;
 }
 
+void Renderer::DrawSkyBox()
+{
+	if (SkyBoxGO == nullptr) return;
+
+	// front face culling and disable depth write
+	devcon->OMSetDepthStencilState(depthWriteOff, 1); 
+	devcon->RSSetState(rasterizerCullFront);
+
+	CBuffer_PerObject cbuf;
+	XMMATRIX translation, projection, view;
+	XMVECTOR camPos = camera.transform.position;
+	translation = XMMatrixTranslation(XMVectorGetX(camPos), XMVectorGetY(camPos), XMVectorGetZ(camPos));
+	projection = camera.GetProjectionMatrix(window.GetWidth(), window.GetHeight());
+	view = camera.GetViewMatrix();
+
+	cbuf.WVP = translation * view * projection;
+	devcon->UpdateSubresource(cBuffer_PerObject, 0, 0, &cbuf, 0, 0);
+	devcon->VSSetConstantBuffers(12, 1, &cBuffer_PerObject);
+
+	SkyBoxGO->material->UpdateMaterial(SkyBoxGO);
+	SkyBoxGO->material->Bind();
+	SkyBoxGO->mesh->Render();
+
+	devcon->OMSetDepthStencilState(nullptr, 1);
+	devcon->RSSetState(rasterizerCullFront);
+}
+
 void Renderer::RenderFrame()
 {
 	// clear back buffer with colour
-	devcon->ClearRenderTargetView(backBuffer, DirectX::Colors::DarkSlateGray);
+	FLOAT bg[4] = { 0.2f, 0.3f,0.2f,1.0f };
+	devcon->ClearRenderTargetView(backBuffer, bg);
 	devcon->ClearDepthStencilView(depthBuffer, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-	// UPDATE VALUES BEFORE ISSUEING DRAW
+	DrawSkyBox();
+
+	CBuffer_PerFrame cbufferPerFrameData;
+	XMStoreFloat3(&cbufferPerFrameData.camPos, camera.transform.position);
+	devcon->UpdateSubresource(cBuffer_PerFrame, NULL, NULL, &cbufferPerFrameData, NULL, NULL);
+	devcon->VSSetConstantBuffers(11, 1, &cBuffer_PerFrame);
+
 	CBuffer_PerObject cbufferData;
-	cbufferData.WVP = XMMatrixIdentity();
 	XMMATRIX view = camera.GetViewMatrix();
 	XMMATRIX projection = camera.GetProjectionMatrix(window.GetWidth(), window.GetHeight());
+
 
 	// gathers each game object and sets world transfer/resources and renders
 	for (auto go : gameObjects)
 	{
+
+
+
 		XMMATRIX world = go->transform.GetWorldMatrix();
+		cbufferData.World = world;
 		cbufferData.WVP = world * view * projection;
 
-		//lighting
-		//ambient light
-		cbufferData.ambientLightColour = ambientLightColour;
-		// directional light
-		cbufferData.directionalLightColour = directionalLightColour;
-		XMMATRIX transpose = XMMatrixTranspose(world);
-		cbufferData.directionalLightDirection = XMVector3Transform(directionalLightShinesFrom, transpose);
-
-
 		devcon->UpdateSubresource(cBuffer_PerObject, NULL, NULL, &cbufferData, NULL, NULL);
-		devcon->VSSetConstantBuffers(0, 1, &cBuffer_PerObject);
-
-		auto t = go->texture->GetTexture();
-		devcon->PSSetShaderResources(0, 1, &t);
-		auto s = go->texture->GetSampler();
-		devcon->PSSetSamplers(0, 1, &s);
+		devcon->VSSetConstantBuffers(12, 1, &cBuffer_PerObject);
 
 		devcon->RSSetState(go->mesh->isDoubleSided ?
 			rasterizerCullNone : rasterizerCullBack);
 
-		devcon->OMSetBlendState(go->texture->isTransparent ?
+		devcon->OMSetBlendState(go->material->GetTexture()->isTransparent ?
 			blendTransparent : blendOpaque, 0, 0xffffffff);
 
-		devcon->OMSetDepthStencilState(go->texture->isTransparent ?
+		devcon->OMSetDepthStencilState(go->material->GetTexture()->isTransparent ?
 			depthWriteOff : nullptr, 1);
 
+		go->material->UpdateMaterial(go);
+		go->material->Bind();
 		go->mesh->Render();
 	}
 
@@ -326,11 +346,6 @@ void Renderer::Release()
 	if (swapchain) swapchain->Release();
 	if (dev) dev->Release();
 	if (devcon) devcon->Release();
-	if (pVS) pVS->Release();
-	if (pPS) pPS->Release();
-	if (pIL) pIL ->Release();
-	//if (vBuffer) vBuffer->Release();
-	//if (iBuffer) iBuffer->Release();
 	if (cBuffer_PerObject) cBuffer_PerObject->Release();
 	if (depthBuffer) depthBuffer->Release();
 }

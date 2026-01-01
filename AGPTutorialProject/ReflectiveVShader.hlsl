@@ -4,8 +4,9 @@
 struct VOut
 {
     float4 position : SV_Position;
-    float2 uv : TEXCOORD;
     float4 colour : COLOR;
+    float2 uv : TEXCOORD0;
+    float3 uvw : TEXCOORD1;
 };
 
 VOut main(VIn input)
@@ -15,6 +16,7 @@ VOut main(VIn input)
     output.uv = input.uv;
     
     output.colour = float4(CalculateAllLighting(ambientLightCol.xyz, dirLight, pointLights, float4(input.position, 1), input.normal), 1);
+    output.uvw = CalculateReflectionUVW(World, float4(input.position, 1), input.normal, cameraPosition);
     
     return output;
 }

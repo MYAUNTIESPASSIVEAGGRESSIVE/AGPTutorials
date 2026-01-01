@@ -5,6 +5,8 @@
 #include "Mesh.h"
 #include "GameObject.h"
 #include "Texture.h"
+#include "Material.h"
+#include "Material_Lit.h"
 
 void OpenConsole();
 
@@ -23,10 +25,17 @@ int WINAPI WinMain(
 	Mesh mesh_grass{ _renderer, "Assets/grass.obj", true };
 	Texture tex_box{ _renderer, "Assets/Box.bmp" };
 	Texture tex_grass{ _renderer, "Assets/grass.png", true };
+	Texture tex_skybox{ _renderer, "Assets/skybox01.dds", false, Texture::TextureType::Cubemap };
+	Material mat_unlit{ "Unlit", _renderer, "Compiled Shaders/VertexShader.cso", "Compiled Shaders/PixelShader.cso", &tex_box };
+	Material mat_skybox{ "SkyBox", _renderer, "Compiled Shaders/SkyboxVShader.cso", "Compiled Shaders/SkyboxPShader.cso", &tex_skybox };
+	Material_Lit mat_lit{ "lit", _renderer, "Compiled Shaders/ReflectiveVShader.cso", "Compiled Shaders/ReflectivePShader.cso", &tex_box };
+	mat_lit.SetReflectionTexture(&tex_skybox);
 
-	GameObject go_grass{ "Grass", &mesh_grass, &tex_grass };
-	GameObject go1{ "Cube", &mesh_cube, &tex_box };
-	GameObject go2{ "Sphere", &mesh_sphere, &tex_box};
+	GameObject go_grass{ "Grass", &mesh_grass, &mat_unlit };
+	GameObject go1{ "Cube", &mesh_cube, &mat_lit };
+	GameObject go2{ "Sphere", &mesh_sphere, &mat_unlit };
+	GameObject go_skybox{ "Skybox", &mesh_cube, &mat_skybox };
+	_renderer.SkyBoxGO = &go_skybox;
 
 	_renderer.RegisterGameObject(&go1);
 	_renderer.RegisterGameObject(&go2);
@@ -36,6 +45,9 @@ int WINAPI WinMain(
 
 	go1.transform.position = DirectX::XMVectorSet(-2, 0, 0, 1);
 	go2.transform.position = DirectX::XMVectorSet(2, 0, 0, 1);
+
+	_renderer.pointLights[0] = { DirectX::XMVECTOR{-1, -1, -3}, {0.85f, 0, 0.85f}, 30, false };
+	_renderer.pointLights[1] = { DirectX::XMVECTOR{-1, 1, -4}, {0, 0.85f, 0.85f}, 40, true };
 
 	OpenConsole();
 	// hold window event messages
